@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
+
 
 class UsersController extends Controller
 {
@@ -16,7 +19,8 @@ class UsersController extends Controller
      */
     public function index()
     {
-
+        $a = User::get()->toArray();
+        dump($a);die;
     }
 
     /**
@@ -37,7 +41,23 @@ class UsersController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        //验证数据
+        $this->validate($request, [
+            'name' => 'required|unique:users|max:50',
+            'email' => 'required|email|unique:users|max:255',
+            'password' => 'required|confirmed'
+        ]);
+
+        //创建数据
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+        ]);
+
+        session()->flash('success', '欢迎，您将在这里开启一段新的旅程~');
+        return redirect()->route('users.show', [$user]);
+
     }
 
     /**
@@ -48,7 +68,8 @@ class UsersController extends Controller
      */
     public function show($id)
     {
-        //
+        $user = User::findOrFail($id);
+        return view('users.show', compact('user'));
     }
 
     /**
