@@ -13,6 +13,16 @@ use Auth;
 
 class UsersController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth', [
+            'only' => ['edit', 'update', 'destroy']
+        ]);
+
+        $this->middleware('guest', [
+            'only' => ['create']
+        ]);
+    }
     /**
      * Display a listing of the resource.
      *
@@ -20,8 +30,8 @@ class UsersController extends Controller
      */
     public function index()
     {
-        $a = User::get()->toArray();
-        dump($a);die;
+        $users = User::paginate(10);
+        return view('users.index', compact('users'));
     }
 
     /**
@@ -82,7 +92,11 @@ class UsersController extends Controller
      */
     public function edit($id)
     {
-        //
+        $user = User::findOrFail($id);
+
+        //授权验证
+        $this->authorize('update', $user);
+        return view('users.edit', compact('user'));
     }
 
     /**
@@ -92,9 +106,23 @@ class UsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update($id, Request $request)
     {
-        //
+        $this->validate($request, [
+            'name' => 'required|max:50',
+            'password' => 'required|confirmed|min:6'
+        ]);
+
+        $user = User::findOrFail($id);
+        //授权验证
+        $this->authorize('update', $user);
+
+        $user->update([
+            'name' => $request->name,
+            'password' => bcrypt($request->password),
+        ]);
+
+        return redirect()->route('users.show', $id);
     }
 
     /**
@@ -105,6 +133,10 @@ class UsersController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $user = User::findOrFail($id);
+        $this->authorize('destroy', $user);
+        $user->delete();
+        session()->flash('success', '成功删除用户！');
+        return back();
     }
 }
